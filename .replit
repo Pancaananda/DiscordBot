@@ -1,8 +1,8 @@
 entrypoint = "index.js"
-modules = ["nodejs-16", "nix"]
+modules = ["nodejs-18:v3-20230608-f4cd419"]
 
 [nix]
-channel = "stable-25_05"
+channel = "stable-23_11"
 
 [deployment]
 run = ["node", "index.js"]
