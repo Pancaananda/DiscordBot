@@ -231,7 +231,7 @@ function scheduleChecks() {
               .setTimestamp();
 
             await discordChannel.send({
-              content: `@everyone ${status.channelTitle} Sekarang Live !`,
+              content: `<@&1410607682326364293> ${status.channelTitle} Sekarang Live !`,
               embeds: [embed],
             });
             console.log(`Sent live notification for ${channel.channelName}`);
