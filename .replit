@@ -7,3 +7,6 @@ channel = "stable-23_11"
 [deployment]
 run = ["node", "index.js"]
 deploymentTarget = "cloudrun"
+
+[agent]
+expertMode = true
