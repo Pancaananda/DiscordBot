@@ -260,7 +260,7 @@ function scheduleChecks() {
 }
 
 // Discord.js Bot events
-client.once("ready", () => {
+client.once("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}!`);
 
   // Set bot status
