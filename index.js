@@ -190,12 +190,12 @@ function scheduleChecks() {
         continue;
       }
       
-      if (status.isLive && channel.notificationChannelId) {
+      if (status.isLive) {
         const wasLiveBefore = channel.isLive || false;
         
         // Only send notification if status changed from offline to live
         if (!wasLiveBefore) {
-          const discordChannel = await client.channels.fetch(channel.notificationChannelId);
+          const discordChannel = await client.channels.fetch(NOTIFICATION_CHANNEL_ID);
           
           if (discordChannel) {
             const embed = new EmbedBuilder()
@@ -209,7 +209,7 @@ function scheduleChecks() {
               .setImage(status.thumbnailUrl)
               .setTimestamp();
             
-            await discordChannel.send({ content: `@everyone ${status.channelTitle} is now live on YouTube!`, embeds: [embed] });
+            await discordChannel.send({ content: `@everyone ${status.channelTitle} Sekarang Live !`, embeds: [embed] });
             console.log(`Sent live notification for ${channel.channelName}`);
             
             // Update channel status
@@ -230,8 +230,11 @@ function scheduleChecks() {
   return job;
 }
 
+// Fixed notification channel ID
+const NOTIFICATION_CHANNEL_ID = '1408815950148538478';
+
 // Discord.js Bot events
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`Logged in as ${client.user.tag}!`);
   
   // Set bot status
@@ -310,7 +313,7 @@ client.on('messageCreate', async message => {
       youtubeChannels.push({
         channelId,
         channelName,
-        notificationChannelId: message.channel.id,
+        notificationChannelId: NOTIFICATION_CHANNEL_ID,
         addedBy: message.author.tag,
         addedAt: new Date().toISOString(),
         isLive: false
@@ -318,7 +321,7 @@ client.on('messageCreate', async message => {
       
       saveChannels();
       
-      return message.reply(`Added YouTube channel "${channelName}" to monitoring list. Livestream notifications will be sent in this channel.`);
+      return message.reply(`Added YouTube channel "${channelName}" to monitoring list. Livestream notifications will be sent in <#${NOTIFICATION_CHANNEL_ID}>.`);
     } catch (error) {
       console.error('Error adding channel:', error);
       return message.reply(`Error adding channel: ${error.message}`);
