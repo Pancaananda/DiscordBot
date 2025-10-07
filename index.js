@@ -41,6 +41,9 @@ const client = new Client({
   ],
 });
 
+// Notification channel ID for all live stream alerts
+const NOTIFICATION_CHANNEL_ID = "1408815950148538478";
+
 // YouTube channels data storage
 const DATA_FILE = "./youtube-channels.json";
 let youtubeChannels = [];
@@ -355,7 +358,7 @@ client.on("messageCreate", async (message) => {
       youtubeChannels.push({
         channelId,
         channelName,
-        notificationChannelId: message.channel.id,
+        notificationChannelId: NOTIFICATION_CHANNEL_ID,
         addedBy: message.author.tag,
         addedAt: new Date().toISOString(),
         isLive: false,
@@ -364,7 +367,7 @@ client.on("messageCreate", async (message) => {
       saveChannels();
 
       return message.reply(
-        `Added YouTube channel "${channelName}" to monitoring list. Livestream notifications will be sent in this channel.`,
+        `Added YouTube channel "${channelName}" to monitoring list. Livestream notifications will be sent to <#${NOTIFICATION_CHANNEL_ID}>.`,
       );
     } catch (error) {
       console.error("Error adding channel:", error);
