@@ -1,8 +1,25 @@
-require('dotenv').config();
+// Load environment variables from .env file in local development
+try {
+  require('dotenv').config();
+} catch (error) {
+  console.log('No .env file found or dotenv error. Using Replit Secrets instead.');
+}
+
 const { Client, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
 const fetch = require('node-fetch');
 const schedule = require('node-schedule');
 const fs = require('fs');
+
+// Check for required environment variables
+if (!process.env.DISCORD_TOKEN) {
+  console.error('DISCORD_TOKEN is not set! Please add it to your Replit Secrets.');
+  process.exit(1);
+}
+
+if (!process.env.YOUTUBE_API_KEY) {
+  console.error('YOUTUBE_API_KEY is not set! Please add it to your Replit Secrets.');
+  process.exit(1);
+}
 
 // Discord bot configuration
 const client = new Client({

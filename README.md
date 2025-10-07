@@ -22,17 +22,16 @@ A Discord bot that monitors YouTube channels and sends notifications when they g
 2. Upload these files to your Replit project:
    - `index.js`
    - `package.json`
-   - `.env` (create with your credentials)
+   - Other project files
 
-3. In the `.env` file, add your Discord token and YouTube API key:
-   ```
-   DISCORD_TOKEN=your_discord_bot_token_here
-   YOUTUBE_API_KEY=your_youtube_api_key_here
-   ```
+3. Set up environment variables in Replit using Secrets:
+   - Click on the lock icon (🔒) in the sidebar or select "Secrets" from the Tools menu
+   - Add the following secrets:
+     - Key: `DISCORD_TOKEN` Value: your Discord bot token
+     - Key: `YOUTUBE_API_KEY` Value: your YouTube API key
+   - Make sure to click "Save" after adding each secret
 
-4. Set up environment variables in Replit:
-   - Go to the Replit project settings (lock icon)
-   - Add the same environment variables from your .env file
+4. Note: **DO NOT** use a `.env` file on Replit as it might expose your tokens
 
 5. Click "Run" to start the bot
 
