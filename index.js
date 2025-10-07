@@ -61,11 +61,76 @@ const saveChannels = () => {
   }
 };
 
-// Parse YouTube channel ID from URL
-function getYoutubeChannelId(url) {
-  const regex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:channel\/|c\/|@)([a-zA-Z0-9_-]+)/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
+// Parse YouTube channel ID or handle from URL
+function getYoutubeIdentifier(url) {
+  // Remove query parameters
+  const cleanUrl = url.split('?')[0];
+  
+  // Match channel ID pattern (UC...)
+  const channelIdRegex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/channel\/([a-zA-Z0-9_-]+)/;
+  const channelMatch = cleanUrl.match(channelIdRegex);
+  if (channelMatch) {
+    return { type: 'id', value: channelMatch[1] };
+  }
+  
+  // Match handle pattern (@username)
+  const handleRegex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/@([a-zA-Z0-9_-]+)/;
+  const handleMatch = cleanUrl.match(handleRegex);
+  if (handleMatch) {
+    return { type: 'handle', value: handleMatch[1] };
+  }
+  
+  // Match custom URL pattern (/c/customname)
+  const customRegex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/c\/([a-zA-Z0-9_-]+)/;
+  const customMatch = cleanUrl.match(customRegex);
+  if (customMatch) {
+    return { type: 'custom', value: customMatch[1] };
+  }
+  
+  return null;
+}
+
+// Resolve YouTube handle or custom URL to channel ID
+async function resolveToChannelId(identifier) {
+  try {
+    if (!identifier) return null;
+    
+    // If it's already a channel ID, return it
+    if (identifier.type === 'id') {
+      return identifier.value;
+    }
+    
+    // For handles, use the forHandle parameter
+    if (identifier.type === 'handle') {
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${identifier.value}&key=${process.env.YOUTUBE_API_KEY}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.items && data.items.length > 0) {
+          return data.items[0].id;
+        }
+      }
+    }
+    
+    // For custom URLs or as fallback, search by username
+    const searchResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${identifier.value}&type=channel&maxResults=1&key=${process.env.YOUTUBE_API_KEY}`
+    );
+    
+    if (searchResponse.ok) {
+      const data = await searchResponse.json();
+      if (data.items && data.items.length > 0) {
+        return data.items[0].snippet.channelId || data.items[0].id.channelId;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error resolving channel identifier:', error);
+    return null;
+  }
 }
 
 // Check if a YouTube channel is live
@@ -204,20 +269,27 @@ client.on('messageCreate', async message => {
     }
     
     const channelUrl = args[0];
-    const channelId = getYoutubeChannelId(channelUrl);
+    const identifier = getYoutubeIdentifier(channelUrl);
     
-    if (!channelId) {
-      return message.reply('Invalid YouTube channel URL. Please provide a valid YouTube channel URL.');
-    }
-    
-    // Check if channel already exists
-    const existingChannel = youtubeChannels.find(c => c.channelId === channelId);
-    if (existingChannel) {
-      return message.reply(`This YouTube channel is already being monitored in ${existingChannel.notificationChannelId ? `<#${existingChannel.notificationChannelId}>` : 'a channel'}.`);
+    if (!identifier) {
+      return message.reply('Invalid YouTube channel URL. Please provide a valid YouTube channel URL (e.g., youtube.com/@username or youtube.com/channel/ID).');
     }
     
     try {
-      // Verify channel exists by making a test API call
+      // Resolve to actual channel ID
+      const channelId = await resolveToChannelId(identifier);
+      
+      if (!channelId) {
+        return message.reply('Could not find this YouTube channel. Please check the URL and try again.');
+      }
+      
+      // Check if channel already exists
+      const existingChannel = youtubeChannels.find(c => c.channelId === channelId);
+      if (existingChannel) {
+        return message.reply(`This YouTube channel is already being monitored in ${existingChannel.notificationChannelId ? `<#${existingChannel.notificationChannelId}>` : 'a channel'}.`);
+      }
+      
+      // Verify channel exists and get details
       const response = await fetch(
         `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${process.env.YOUTUBE_API_KEY}`
       );
@@ -264,16 +336,25 @@ client.on('messageCreate', async message => {
     }
     
     const query = args.join(' ');
-    const channelId = getYoutubeChannelId(query);
+    const identifier = getYoutubeIdentifier(query);
     
     let removed = false;
-    if (channelId) {
-      // Remove by channel ID
-      const initialLength = youtubeChannels.length;
-      youtubeChannels = youtubeChannels.filter(c => c.channelId !== channelId);
-      removed = youtubeChannels.length < initialLength;
-    } else {
-      // Try to remove by channel name
+    if (identifier) {
+      // Try to resolve to channel ID and remove
+      try {
+        const channelId = await resolveToChannelId(identifier);
+        if (channelId) {
+          const initialLength = youtubeChannels.length;
+          youtubeChannels = youtubeChannels.filter(c => c.channelId !== channelId);
+          removed = youtubeChannels.length < initialLength;
+        }
+      } catch (error) {
+        console.error('Error resolving channel for removal:', error);
+      }
+    }
+    
+    // If not removed yet, try to remove by channel name
+    if (!removed) {
       const initialLength = youtubeChannels.length;
       youtubeChannels = youtubeChannels.filter(c => 
         !c.channelName.toLowerCase().includes(query.toLowerCase())
