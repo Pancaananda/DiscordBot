@@ -197,19 +197,11 @@ async function checkYouTubeLiveStatus(channelId) {
 
 // Schedule live stream checks
 function scheduleChecks() {
-  // Schedule to run every 5 minutes
-  const job = schedule.scheduleJob("*/5 * * * *", async function () {
+  // Schedule to run every 2 minutes
+  const job = schedule.scheduleJob("*/2 * * * *", async function () {
     console.log(`[${new Date().toISOString()}] Checking YouTube channels...`);
 
     for (const channel of youtubeChannels) {
-      // Skip channels that were recently found live to avoid spam
-      if (
-        channel.lastNotified &&
-        new Date() - new Date(channel.lastNotified) < 60 * 60 * 1000
-      ) {
-        continue;
-      }
-
       const status = await checkYouTubeLiveStatus(channel.channelId);
 
       if (!status) {
@@ -218,10 +210,10 @@ function scheduleChecks() {
       }
 
       if (status.isLive && channel.notificationChannelId) {
-        const wasLiveBefore = channel.isLive || false;
+        // Only send notification if it's a new/different livestream
+        const isDifferentStream = channel.lastVideoId !== status.videoId;
 
-        // Only send notification if status changed from offline to live
-        if (!wasLiveBefore) {
+        if (isDifferentStream) {
           const discordChannel = await client.channels.fetch(
             channel.notificationChannelId,
           );
@@ -244,8 +236,9 @@ function scheduleChecks() {
             });
             console.log(`Sent live notification for ${channel.channelName}`);
 
-            // Update channel status
+            // Update channel status with video ID
             channel.isLive = true;
+            channel.lastVideoId = status.videoId;
             channel.lastNotified = new Date().toISOString();
             saveChannels();
           }
@@ -258,7 +251,7 @@ function scheduleChecks() {
     }
   });
 
-  console.log("Scheduled YouTube livestream checks.");
+  console.log("Scheduled YouTube livestream checks every 2 minutes.");
   return job;
 }
 
